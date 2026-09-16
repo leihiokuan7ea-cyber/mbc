@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>水果英文拼字大挑戰 (20種水果)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation; /* 防止手機快速點擊時畫面放大 */
+        }
+        body {
+            font-family: "Comic Sans MS", "Chalkboard SE", "Yu Gothic", sans-serif;
+            background-color: #f0f9ff;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 100vh;
+        }
+        header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        h1 {
+            color: #ff6b6b;
+            font-size: clamp(1.4rem, 5vw, 2.2rem);
+            margin: 5px 0;
+            text-shadow: 2px 2px #ffe66d;
+            text-align: center;
+        }
+        .score-board {
+            font-size: clamp(1rem, 3.5vw, 1.3rem);
+            color: #1a535c;
+            background: #ffe66d;
+            padding: 4px 16px;
+            border-radius: 15px;
+            font-weight: bold;
+            box-shadow: 0 3px 0px #e6c832;
+        }
+        
+        /* 展示區域 */
+        .card-display {
+            background: white;
+            border: 4px solid #4ecdc4;
+            border-radius: 20px;
+            padding: 10px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 6px 0px #4ecdc4;
+            width: 100%;
+            max-width: 500px;
+            margin: 10px 0;
+        }
+        .fruit-emoji {
+            font-size: clamp(4rem, 15vw, 6.5rem);
+            cursor: pointer;
+            transition: transform 0.15s;
+            line-height: 1.1;
+        }
+        .fruit-emoji:active {
+            transform: scale(1.15);
+        }
+        .sound-hint {
+            font-size: clamp(0.75rem, 2.5vw, 0.95rem);
+            color: #888;
+            margin-bottom: 8px;
+        }
+        
+        /* 拼字空格區 */
+        .word-slots {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            width: 100%;
+            min-height: 50px;
+        }
+        .slot {
+            width: clamp(30px, 8vw, 45px);
+            height: clamp(40px, 10vw, 55px);
+            border-bottom: 4px solid #ff6b6b;
+            font-size: clamp(1.4rem, 5vw, 2.2rem);
+            font-weight: bold;
+            color: #ff6b6b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #fff0f0;
+            border-radius: 8px 8px 0 0;
+        }
+        .slot.correct {
+            color: #2ec4b6;
+            border-bottom-color: #2ec4b6;
+            background-color: #e6fffa;
+        }
+
+        /* 響應式虛擬鍵盤 */
+        .keyboard {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 5px;
+        }
+        .kb-row {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            width: 100%;
+        }
+        .key {
+            background: white;
+            border: 2px solid #bde0fe;
+            border-radius: 8px;
+            font-size: clamp(1.1rem, 4vw, 1.6rem);
+            font-weight: bold;
+            color: #2b2d42;
+            height: clamp(42px, 10vw, 55px);
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 0px #bde0fe;
+            transition: all 0.05s;
+        }
+        .key:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0px #bde0fe;
+            background-color: #e8f4ff;
+        }
+        .key.btn-back {
+            flex: 1.5;
+            background-color: #ffccd5;
+            border-color: #ffb3c1;
+            box-shadow: 0 4px 0px #ffb3c1;
+            color: #c9184a;
+        }
+
+        /* 錯誤 shake 動畫 */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+        .shake {
+            animation: shake 0.35s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🍎 水果拼字大挑戰 🍇</h1>
+        <div class="score-board">水果進度: <span id="current-idx">1</span> / <span id="total-idx">20</span></div>
+    </header>
+
+    <!-- 題目區域 -->
+    <div class="card-display" id="cardDisplay">
+        <div class="fruit-emoji" onclick="speakCurrentWord()" title="點擊聽聲音">🍎</div>
+        <div class="sound-hint">🔊 點擊水果聽單字發音</div>
+        <div class="word-slots" id="wordSlots"></div>
+    </div>
+
+    <!-- 鍵盤區域 -->
+    <div class="keyboard" id="keyboard"></div>
+
+    <script>
+        // 20 種水果資料庫
+        const fruitsData = [
+            { name: 'APPLE', emoji: '🍎' },
+            { name: 'BANANA', emoji: '🍌' },
+            { name: 'ORANGE', emoji: '🍊' },
+            { name: 'GRAPES', emoji: '🍇' },
+            { name: 'MELON', emoji: '🍉' },
+            { name: 'PEACH', emoji: '🍑' },
+            { name: 'LEMON', emoji: '🍋' },
+            { name: 'KIWI', emoji: '🥝' },
+            { name: 'MANGO', emoji: '🥭' },
+            { name: 'PEAR', emoji: '🍐' },
+            { name: 'CHERRY', emoji: '🍒' },
+            { name: 'TOMATO', emoji: '🍅' },
+            { name: 'AVOCADO', emoji: '🥑' },
+            { name: 'PAPAYA', emoji: '🫒' }, // 備用可換其他圖片
+            { name: 'COCONUT', emoji: '🥥' },
+            { name: 'FIG', emoji: '🫐' },
+            { name: 'PINEAPPLE', emoji: '🍍' },
+            { name: 'STRAWBERRY', emoji: '🍓' },
+            { name: 'BLUEBERRY', emoji: '🫐' },
+            { name: 'PLUM', emoji: '🍑' }
+        ];
+
+        let currentIndex = 0;
+        let currentInput = [];
+
+        // TTS 語音朗讀功能
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.85; // 適合小朋友的朗讀速度
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function speakCurrentWord() {
+            speak(fruitsData[currentIndex].name.toLowerCase());
+        }
+
+        // 初始化遊戲
+        function initGame() {
+            document.getElementById('total-idx').innerText = fruitsData.length;
+            buildKeyboard();
+            loadQuestion();
+
+            // 支援電腦實體鍵盤
+            document.removeEventListener('keydown', handlePhysicalKeyboard);
+            document.addEventListener('keydown', handlePhysicalKeyboard);
+        }
+
+        // 載入當前題目
+        function loadQuestion() {
+            const currentFruit = fruitsData[currentIndex];
+            document.getElementById('current-idx').innerText = currentIndex + 1;
+            document.querySelector('.fruit-emoji').innerText = currentFruit.emoji;
+            currentInput = [];
+
+            // 生成格子
+            const slotsContainer = document.getElementById('wordSlots');
+            slotsContainer.innerHTML = '';
+            for (let i = 0; i < currentFruit.name.length; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.id = `slot-${i}`;
+                slotsContainer.appendChild(slot);
+            }
+
+            // 讀出當前單字發音
+            setTimeout(speakCurrentWord, 300);
+        }
+
+        // 建立螢幕鍵盤 (3排 QWERTY 排列)
+        function buildKeyboard() {
+            const layout = [
+                ['Q','W','E','R','T','Y','U','I','O','P'],
+                ['A','S','D','F','G','H','J','K','L'],
+                ['Z','X','C','V','B','N','M','⌫']
+            ];
+
+            const kbContainer = document.getElementById('keyboard');
+            kbContainer.innerHTML = '';
+
+            layout.forEach(row => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'kb-row';
+                row.forEach(key => {
+                    const btn = document.createElement('div');
+                    btn.className = 'key';
+                    btn.innerText = key;
+                    if (key === '⌫') {
+                        btn.classList.add('btn-back');
+                        btn.innerText = '⌫ 刪除';
+                        btn.onclick = handleBackspace;
+                    } else {
+                        btn.onclick = () => handleKeyPress(key);
+                    }
+                    rowDiv.appendChild(btn);
+                });
+                kbContainer.appendChild(rowDiv);
+            });
+        }
+
+        // 點擊字母時的邏輯
+        function handleKeyPress(letter) {
+            const targetWord = fruitsData[currentIndex].name;
+
+            if (currentInput.length < targetWord.length) {
+                // 朗讀單個字母音
+                speak(letter.toLowerCase());
+
+                const currentSlotIndex = currentInput.length;
+                currentInput.push(letter);
+                
+                const slot = document.getElementById(`slot-${currentSlotIndex}`);
+                slot.innerText = letter;
+
+                // 檢查該位置字母是否正確
+                if (letter !== targetWord[currentSlotIndex]) {
+                    const card = document.getElementById('cardDisplay');
+                    card.classList.add('shake');
+                    setTimeout(() => card.classList.remove('shake'), 350);
+                }
+
+                // 完成單字輸入時檢查
+                if (currentInput.length === targetWord.length) {
+                    checkAnswer();
+                }
+            }
+        }
+
+        // 退格刪除
+        function handleBackspace() {
+            if (currentInput.length > 0) {
+                currentInput.pop();
+                const slot = document.getElementById(`slot-${currentInput.length}`);
+                slot.innerText = '';
+                slot.classList.remove('correct');
+            }
+        }
+
+        // 實體鍵盤響應
+        function handlePhysicalKeyboard(e) {
+            const key = e.key.toUpperCase();
+            if (key === 'BACKSPACE') {
+                handleBackspace();
+            } else if (/^[A-Z]$/.test(key)) {
+                handleKeyPress(key);
+            }
+        }
+
+        // 檢查最終答案
+        function checkAnswer() {
+            const targetWord = fruitsData[currentIndex].name;
+            const userWord = currentInput.join('');
+
+            if (userWord === targetWord) {
+                // 標記綠色打勾樣式
+                for (let i = 0; i < targetWord.length; i++) {
+                    document.getElementById(`slot-${i}`).classList.add('correct');
+                }
+                
+                setTimeout(() => {
+                    speak("Good job! " + targetWord.toLowerCase());
+                }, 200);
+
+                setTimeout(() => {
+                    if (currentIndex < fruitsData.length - 1) {
+                        currentIndex++;
+                        loadQuestion();
+                    } else {
+                        speak("Congratulations! You completed all fruits!");
+                        alert("🎉 太棒了！你已經學會了全部 20 種水果英文！🎉");
+                        currentIndex = 0;
+                        loadQuestion();
+                    }
+                }, 1600);
+            }
+        }
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>
