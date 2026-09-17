@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>1-50 英文數字拼字大冒險 (闖關版)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body {
+            font-family: "Comic Sans MS", "Chalkboard SE", "Yu Gothic", sans-serif;
+            background-color: #f0f7ff;
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 100vh;
+        }
+        
+        /* 關卡選擇選單頁面 */
+        #level-select-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 500px;
+            margin: auto;
+        }
+        .main-title {
+            color: #4361ee;
+            font-size: clamp(1.6rem, 6vw, 2.5rem);
+            text-shadow: 2px 2px #bde0fe;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .level-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+        }
+        .level-card {
+            background: white;
+            border: 4px solid #4895ef;
+            border-radius: 20px;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            box-shadow: 0 6px 0px #4895ef;
+            transition: transform 0.15s;
+        }
+        .level-card:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0px #4895ef;
+        }
+        .level-info h3 {
+            margin: 0;
+            color: #3f37c9;
+            font-size: 1.4rem;
+        }
+        .level-info p {
+            margin: 5px 0 0 0;
+            color: #6c757d;
+            font-size: 1rem;
+        }
+        .star-badge {
+            font-size: 1.3rem;
+            color: #ffb703;
+            font-weight: bold;
+            background: #fff3bf;
+            padding: 6px 12px;
+            border-radius: 15px;
+        }
+
+        /* 遊戲介面頁面 */
+        #game-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 600px;
+        }
+        header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+        .btn-back-menu {
+            background: #ff4d6d;
+            border: none;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            box-shadow: 0 3px 0px #c9184a;
+        }
+        .btn-back-menu:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0px #c9184a;
+        }
+        .level-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #3f37c9;
+        }
+        .star-counter {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #d4a373;
+            background: #fff3bf;
+            padding: 4px 12px;
+            border-radius: 15px;
+            border: 2px solid #ffb703;
+        }
+        
+        .progress-bar-container {
+            width: 100%;
+            height: 14px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            border: 2px solid #ced4da;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #4cc9f0;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* 卡片題目區 */
+        .card-display {
+            background: white;
+            border: 4px solid #4361ee;
+            border-radius: 20px;
+            padding: 10px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 6px 0px #4361ee;
+            width: 100%;
+            margin: 5px 0;
+        }
+        .number-display {
+            font-size: clamp(3.8rem, 14vw, 6rem);
+            font-weight: 900;
+            color: #7209b7;
+            cursor: pointer;
+            transition: transform 0.15s;
+            line-height: 1;
+            text-shadow: 3px 3px #4cc9f0;
+        }
+        .number-display:active {
+            transform: scale(1.15);
+        }
+        .sound-hint {
+            font-size: clamp(0.75rem, 2.5vw, 0.95rem);
+            color: #888;
+            margin-bottom: 8px;
+            margin-top: 4px;
+        }
+
+        /* 拼字空格 */
+        .word-slots {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 5px;
+            width: 100%;
+            min-height: 50px;
+        }
+        .slot {
+            width: clamp(26px, 7vw, 40px);
+            height: clamp(38px, 9vw, 50px);
+            border-bottom: 4px solid #7209b7;
+            font-size: clamp(1.2rem, 4.5vw, 1.9rem);
+            font-weight: bold;
+            color: #7209b7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f3e8ff;
+            border-radius: 6px 6px 0 0;
+        }
+        .slot.symbol {
+            background-color: transparent;
+            border-bottom: none;
+            color: #4361ee;
+        }
+        .slot.correct {
+            color: #2a9d8f;
+            border-bottom-color: #2a9d8f;
+            background-color: #e8f8f5;
+        }
+
+        /* 鍵盤 */
+        .keyboard {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        .kb-row {
+            display: flex;
+            justify-content: center;
+            gap: 4px;
+            width: 100%;
+        }
+        .key {
+            background: white;
+            border: 2px solid #bde0fe;
+            border-radius: 8px;
+            font-size: clamp(1.1rem, 4vw, 1.5rem);
+            font-weight: bold;
+            color: #1d3557;
+            height: clamp(42px, 10vw, 55px);
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 0px #bde0fe;
+            transition: all 0.05s;
+        }
+        .key:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0px #bde0fe;
+            background-color: #e8f4ff;
+        }
+        .key.btn-back {
+            flex: 1.5;
+            background-color: #ffccd5;
+            border-color: #ffb3c1;
+            box-shadow: 0 4px 0px #ffb3c1;
+            color: #c9184a;
+        }
+
+        /* 星星過關飛出特效 Modal */
+        .star-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .star-box {
+            background: white;
+            border-radius: 25px;
+            padding: 25px 35px;
+            text-align: center;
+            box-shadow: 0 10px 0px #4361ee;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .star-icon {
+            font-size: 5rem;
+            animation: spinStar 0.8s ease-out;
+        }
+        .star-text {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ffb703;
+            margin-top: 10px;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes spinStar {
+            0% { transform: scale(0) rotate(-180deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+        .shake {
+            animation: shake 0.35s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 關卡選擇頁面 -->
+    <div id="level-select-screen">
+        <h1 class="main-title">⭐ 英文數字闖關大冒險 ⭐</h1>
+        <div class="level-grid" id="levelGrid"></div>
+    </div>
+
+    <!-- 遊戲拼字頁面 -->
+    <div id="game-screen">
+        <header>
+            <div class="top-bar">
+                <button class="btn-back-menu" onclick="showLevelSelect()">🏠 選關卡</button>
+                <div class="level-title" id="levelTitle">第 1 關 (1-10)</div>
+                <div class="star-counter">⭐ <span id="starCount">0</span></div>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressFill"></div>
+            </div>
+        </header>
+
+        <!-- 題目區域 -->
+        <div class="card-display" id="cardDisplay">
+            <div class="number-display" onclick="speakCurrentWord()" title="點擊聽發音">1</div>
+            <div class="sound-hint">🔊 點擊數字聽英文發音</div>
+            <div class="word-slots" id="wordSlots"></div>
+        </div>
+
+        <!-- 鍵盤區域 -->
+        <div class="keyboard" id="keyboard"></div>
+    </div>
+
+    <!-- 獲得星星彈窗 -->
+    <div class="star-modal" id="starModal">
+        <div class="star-box">
+            <div class="star-icon">⭐</div>
+            <div class="star-text">+1 顆星星！</div>
+        </div>
+    </div>
+
+    <script>
+        const numbersData = [
+            { num: 1, name: 'ONE' }, { num: 2, name: 'TWO' }, { num: 3, name: 'THREE' }, { num: 4, name: 'FOUR' }, { num: 5, name: 'FIVE' },
+            { num: 6, name: 'SIX' }, { num: 7, name: 'SEVEN' }, { num: 8, name: 'EIGHT' }, { num: 9, name: 'NINE' }, { num: 10, name: 'TEN' },
+            { num: 11, name: 'ELEVEN' }, { num: 12, name: 'TWELVE' }, { num: 13, name: 'THIRTEEN' }, { num: 14, name: 'FOURTEEN' }, { num: 15, name: 'FIFTEEN' },
+            { num: 16, name: 'SIXTEEN' }, { num: 17, name: 'SEVENTEEN' }, { num: 18, name: 'EIGHTEEN' }, { num: 19, name: 'NINETEEN' }, { num: 20, name: 'TWENTY' },
+            { num: 21, name: 'TWENTY-ONE' }, { num: 22, name: 'TWENTY-TWO' }, { num: 23, name: 'TWENTY-THREE' }, { num: 24, name: 'TWENTY-FOUR' }, { num: 25, name: 'TWENTY-FIVE' },
+            { num: 26, name: 'TWENTY-SIX' }, { num: 27, name: 'TWENTY-SEVEN' }, { num: 28, name: 'TWENTY-EIGHT' }, { num: 29, name: 'TWENTY-NINE' }, { num: 30, name: 'THIRTY' },
+            { num: 31, name: 'THIRTY-ONE' }, { num: 32, name: 'THIRTY-TWO' }, { num: 33, name: 'THIRTY-THREE' }, { num: 34, name: 'THIRTY-FOUR' }, { num: 35, name: 'THIRTY-FIVE' },
+            { num: 36, name: 'THIRTY-SIX' }, { num: 37, name: 'THIRTY-SEVEN' }, { num: 38, name: 'THIRTY-EIGHT' }, { num: 39, name: 'THIRTY-NINE' }, { num: 40, name: 'FORTY' },
+            { num: 41, name: 'FORTY-ONE' }, { num: 42, name: 'FORTY-TWO' }, { num: 43, name: 'FORTY-THREE' }, { num: 44, name: 'FORTY-FOUR' }, { num: 45, name: 'FORTY-FIVE' },
+            { num: 46, name: 'FORTY-SIX' }, { num: 47, name: 'FORTY-SEVEN' }, { num: 48, name: 'FORTY-EIGHT' }, { num: 49, name: 'FORTY-NINE' }, { num: 50, name: 'FIFTY' }
+        ];
+
+        const levels = [
+            { id: 1, title: '第 1 關 (1 - 10)', start: 1, end: 10 },
+            { id: 2, title: '第 2 關 (11 - 20)', start: 11, end: 20 },
+            { id: 3, title: '第 3 關 (21 - 30)', start: 21, end: 30 },
+            { id: 4, title: '第 4 關 (31 - 40)', start: 31, end: 40 },
+            { id: 5, title: '第 5 關 (41 - 50)', start: 41, end: 50 }
+        ];
+
+        let currentLevel = 1;
+        let currentQuestions = [];
+        let currentQIndex = 0;
+        let currentInput = [];
+        let levelStars = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.85;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        function speakCurrentWord() {
+            const currentItem = currentQuestions[currentQIndex];
+            speak(currentItem.name.toLowerCase().replace('-', ' '));
+        }
+
+        function renderLevelSelect() {
+            const container = document.getElementById('levelGrid');
+            container.innerHTML = '';
+
+            levels.forEach(lvl => {
+                const card = document.createElement('div');
+                card.className = 'level-card';
+                card.onclick = () => startLevel(lvl.id);
+
+                const starsEarned = levelStars[lvl.id] || 0;
+                card.innerHTML = `
+                    <div class="level-info">
+                        <h3>${lvl.title}</h3>
+                        <p>完成題數: ${starsEarned} / 10</p>
+                    </div>
+                    <div class="star-badge">⭐ ${starsEarned}</div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function showLevelSelect() {
+            document.getElementById('game-screen').style.display = 'none';
+            document.getElementById('level-select-screen').style.display = 'flex';
+            renderLevelSelect();
+        }
+
+        function startLevel(levelId) {
+            currentLevel = levelId;
+            const lvl = levels.find(l => l.id === levelId);
+            currentQuestions = numbersData.filter(n => n.num >= lvl.start && n.num <= lvl.end);
+            currentQIndex = 0;
+
+            document.getElementById('levelTitle').innerText = lvl.title;
+            document.getElementById('level-select-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'flex';
+
+            buildKeyboard();
+            loadQuestion();
+
+            document.removeEventListener('keydown', handlePhysicalKeyboard);
+            document.addEventListener('keydown', handlePhysicalKeyboard);
+        }
+
+        function loadQuestion() {
+            const currentItem = currentQuestions[currentQIndex];
+            document.querySelector('.number-display').innerText = currentItem.num;
+            document.getElementById('starCount').innerText = levelStars[currentLevel];
+            
+            const progress = (currentQIndex / currentQuestions.length) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+
+            currentInput = [];
+            const slotsContainer = document.getElementById('wordSlots');
+            slotsContainer.innerHTML = '';
+
+            for (let i = 0; i < currentItem.name.length; i++) {
+                const char = currentItem.name[i];
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.id = `slot-${i}`;
+
+                if (char === '-') {
+                    slot.innerText = '-';
+                    slot.classList.add('symbol');
+                }
+                slotsContainer.appendChild(slot);
+            }
+
+            setTimeout(speakCurrentWord, 300);
+        }
+
+        function buildKeyboard() {
+            const layout = [
+                ['Q','W','E','R','T','Y','U','I','O','P'],
+                ['A','S','D','F','G','H','J','K','L'],
+                ['Z','X','C','V','B','N','M','⌫']
+            ];
+
+            const kbContainer = document.getElementById('keyboard');
+            kbContainer.innerHTML = '';
+
+            layout.forEach(row => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'kb-row';
+                row.forEach(key => {
+                    const btn = document.createElement('div');
+                    btn.className = 'key';
+                    btn.innerText = key;
+                    if (key === '⌫') {
+                        btn.classList.add('btn-back');
+                        btn.innerText = '⌫ 刪除';
+                        btn.onclick = handleBackspace;
+                    } else {
+                        btn.onclick = () => handleKeyPress(key);
+                    }
+                    rowDiv.appendChild(btn);
+                });
+                kbContainer.appendChild(rowDiv);
+            });
+        }
+
+        function handleKeyPress(letter) {
+            const targetWord = currentQuestions[currentQIndex].name;
+            let targetIndex = getNextInputIndex();
+
+            if (targetIndex < targetWord.length) {
+                speak(letter.toLowerCase());
+
+                currentInput[targetIndex] = letter;
+                const slot = document.getElementById(`slot-${targetIndex}`);
+                slot.innerText = letter;
+
+                if (letter !== targetWord[targetIndex]) {
+                    const card = document.getElementById('cardDisplay');
+                    card.classList.add('shake');
+                    setTimeout(() => card.classList.remove('shake'), 350);
+                }
+
+                if (isWordComplete()) {
+                    checkAnswer();
+                }
+            }
+        }
+
+        function getNextInputIndex() {
+            const targetWord = currentQuestions[currentQIndex].name;
+            for (let i = 0; i < targetWord.length; i++) {
+                if (targetWord[i] === '-') continue;
+                if (!currentInput[i]) return i;
+            }
+            return targetWord.length;
+        }
+
+        function isWordComplete() {
+            const targetWord = currentQuestions[currentQIndex].name;
+            for (let i = 0; i < targetWord.length; i++) {
+                if (targetWord[i] === '-') continue;
+                if (!currentInput[i]) return false;
+            }
+            return true;
+        }
+
+        function handleBackspace() {
+            const targetWord = currentQuestions[currentQIndex].name;
+            for (let i = targetWord.length - 1; i >= 0; i--) {
+                if (targetWord[i] !== '-' && currentInput[i]) {
+                    currentInput[i] = null;
+                    const slot = document.getElementById(`slot-${i}`);
+                    slot.innerText = '';
+                    slot.classList.remove('correct');
+                    break;
+                }
+            }
+        }
+
+        function handlePhysicalKeyboard(e) {
+            const key = e.key.toUpperCase();
+            if (key === 'BACKSPACE') {
+                handleBackspace();
+            } else if (/^[A-Z]$/.test(key)) {
+                handleKeyPress(key);
+            }
+        }
+
+        function showStarAnimation() {
+            const modal = document.getElementById('starModal');
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 1000);
+        }
+
+        function checkAnswer() {
+            const targetWord = currentQuestions[currentQIndex].name;
+            let userWord = '';
+
+            for (let i = 0; i < targetWord.length; i++) {
+                if (targetWord[i] === '-') {
+                    userWord += '-';
+                } else {
+                    userWord += currentInput[i] || '';
+                }
+            }
+
+            if (userWord === targetWord) {
+                for (let i = 0; i < targetWord.length; i++) {
+                    document.getElementById(`slot-${i}`).classList.add('correct');
+                }
+                
+                levelStars[currentLevel] = Math.max(levelStars[currentLevel], currentQIndex + 1);
+                document.getElementById('starCount').innerText = levelStars[currentLevel];
+
+                setTimeout(() => {
+                    speak("Awesome! " + targetWord.toLowerCase().replace('-', ' '));
+                    showStarAnimation();
+                }, 200);
+
+                setTimeout(() => {
+                    if (currentQIndex < currentQuestions.length - 1) {
+                        currentQIndex++;
+                        loadQuestion();
+                    } else {
+                        document.getElementById('progressFill').style.width = '100%';
+                        speak("Great job! Level completed!");
+                        alert(`🎉 恭喜你順利通過第 ${currentLevel} 關！獲得了 10 顆星星！⭐`);
+                        showLevelSelect();
+                    }
+                }, 1600);
+            }
+        }
+
+        window.onload = showLevelSelect;
+    </script>
+</body>
+</html>
